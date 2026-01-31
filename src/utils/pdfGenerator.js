@@ -128,24 +128,69 @@ export const generatePatientPDF = (patient, measurements, parameters, visits = [
       doc.text(paramName, 14, yPos);
       yPos += 5;
 
+      // Calcola range personalizzato per questo parametro
+      const includedMeasurements = paramMeasurements.filter(m => m.includedInFormula);
+      let customRange = null;
+      
+      if (includedMeasurements.length >= 2) {
+        const values = includedMeasurements.map(m => m.value);
+        const mean = values.reduce((a, b) => a + b, 0) / values.length;
+        const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+        const sd = Math.sqrt(variance);
+        
+        // Usa la formula del parametro (default: mean ± 1.5*sd)
+        const multiplier = param?.customFormula?.includes('2*sd') ? 2 : 1.5;
+        customRange = {
+          min: mean - multiplier * sd,
+          max: mean + multiplier * sd
+        };
+      }
+
       const tableData = paramMeasurements
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .slice(0, 20) // Ultime 20 misurazioni per parametro
-        .map(m => [
-          new Date(m.date).toLocaleDateString('it-IT'),
-          `${m.value.toFixed(2)} ${param?.unit || ''}`,
-          m.notes || '-',
-          m.includedInFormula ? 'Sì' : 'No'
-        ]);
+        .map(m => {
+          const value = m.value;
+          const standardRange = param?.standardRange;
+          
+          // Check range standard
+          let inStandardRange = '-';
+          if (standardRange) {
+            inStandardRange = (value >= standardRange.min && value <= standardRange.max) ? '✓ SÌ' : '✗ NO';
+          }
+          
+          // Check range personalizzato
+          let inCustomRange = '-';
+          if (customRange) {
+            inCustomRange = (value >= customRange.min && value <= customRange.max) ? '✓ SÌ' : '✗ NO';
+          }
+          
+          return [
+            new Date(m.date).toLocaleDateString('it-IT'),
+            `${m.value.toFixed(2)} ${param?.unit || ''}`,
+            inStandardRange,
+            inCustomRange,
+            m.notes || '-',
+            m.includedInFormula ? 'Sì' : 'No'
+          ];
+        });
 
       doc.autoTable({
         startY: yPos,
-        head: [['Data', 'Valore', 'Note', 'In Formula']],
+        head: [['Data', 'Valore', 'Range Std', 'Range Pers', 'Note', 'In Formula']],
         body: tableData,
         theme: 'striped',
-        headStyles: { fillColor: [59, 130, 246] },
+        headStyles: { fillColor: [59, 130, 246], fontSize: 8 },
         margin: { left: 14, right: 14 },
-        styles: { fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 2 },
+        columnStyles: {
+          0: { cellWidth: 22 },  // Data
+          1: { cellWidth: 28 },  // Valore
+          2: { cellWidth: 22 },  // Range Std
+          3: { cellWidth: 22 },  // Range Pers
+          4: { cellWidth: 50 },  // Note
+          5: { cellWidth: 20 }   // In Formula
+        },
         didDrawPage: function (data) {
           yPos = data.cursor.y + 10;
         }

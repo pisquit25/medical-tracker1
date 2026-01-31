@@ -70,11 +70,44 @@ const Chart = ({ selectedParameter, onParameterChange }) => {
     if (!active || !payload || !payload.length) return null;
 
     const data = payload[0].payload;
+    const value = data.value;
+    
+    // Determina colore in base ai range (logica semaforo)
+    const standardRange = parameter?.standardRange;
+    let inStandardRange = false;
+    let inCustomRange = false;
+    
+    if (standardRange) {
+      inStandardRange = value >= standardRange.min && value <= standardRange.max;
+    }
+    
+    if (customRange) {
+      inCustomRange = value >= customRange.min && value <= customRange.max;
+    }
+    
+    // Logica semaforo:
+    // Verde: dentro entrambi i range
+    // Arancione: dentro un solo range
+    // Rosso: fuori da entrambi
+    let valueColor = '#ef4444'; // Rosso default
+    let statusLabel = 'Fuori Range';
+    
+    if (inStandardRange && inCustomRange) {
+      valueColor = '#22c55e'; // Verde
+      statusLabel = 'Ottimale';
+    } else if (inStandardRange || inCustomRange) {
+      valueColor = '#f59e0b'; // Arancione
+      statusLabel = 'Attenzione';
+    }
+    
     return (
-      <div className="bg-white p-4 rounded-lg shadow-xl border-2 border-gray-200">
+      <div className="bg-white p-4 rounded-lg shadow-xl border-2" style={{ borderColor: valueColor }}>
         <p className="font-bold text-gray-900 mb-1">{data.fullDate}</p>
-        <p className="text-2xl font-bold" style={{ color: parameter?.color }}>
+        <p className="text-2xl font-bold" style={{ color: valueColor }}>
           {data.value} {parameter?.unit}
+        </p>
+        <p className="text-xs font-semibold mt-1" style={{ color: valueColor }}>
+          {statusLabel}
         </p>
         {data.notes && (
           <div className="mt-2 pt-2 border-t border-gray-200">
@@ -84,6 +117,29 @@ const Chart = ({ selectedParameter, onParameterChange }) => {
             </p>
           </div>
         )}
+        {/* Indicator ranges */}
+        <div className="mt-2 pt-2 border-t border-gray-200 text-xs space-y-1">
+          {standardRange && (
+            <div className="flex items-center gap-1">
+              <span className={inStandardRange ? 'text-green-600' : 'text-red-600'}>
+                {inStandardRange ? '✓' : '✗'}
+              </span>
+              <span className="text-gray-600">
+                Range Std: {standardRange.min}-{standardRange.max}
+              </span>
+            </div>
+          )}
+          {customRange && (
+            <div className="flex items-center gap-1">
+              <span className={inCustomRange ? 'text-green-600' : 'text-red-600'}>
+                {inCustomRange ? '✓' : '✗'}
+              </span>
+              <span className="text-gray-600">
+                Range Pers: {customRange.min.toFixed(1)}-{customRange.max.toFixed(1)}
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     );
   };
