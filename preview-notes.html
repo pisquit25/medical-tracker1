@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anteprima Misurazione con Note</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(to bottom right, #f8fafc, #e0f2fe);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Form di inserimento -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">
+                Nuova Misurazione
+            </h2>
+            
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Parametro
+                    </label>
+                    <select class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option>Glicemia (mg/dL)</option>
+                        <option>VES (mm/h)</option>
+                        <option>TSH (mIU/L)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Valore
+                    </label>
+                    <div class="flex gap-2">
+                        <input 
+                            type="number" 
+                            class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                            placeholder="Es: 95.5"
+                            value="85"
+                        />
+                        <div class="flex items-center px-3 bg-gray-100 rounded-lg border border-gray-300 text-gray-700 font-semibold">
+                            mg/dL
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Data
+                    </label>
+                    <input 
+                        type="date" 
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                        value="2025-01-20"
+                    />
+                </div>
+
+                <!-- CAMPO NOTE NUOVO -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        Note <span class="text-gray-500 font-normal text-xs">(opzionale)</span>
+                    </label>
+                    <textarea 
+                        class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none" 
+                        rows="3" 
+                        placeholder="Es: Rilevazione a digiuno, dopo attività fisica, ecc..."
+                    >Misurazione effettuata a digiuno, prima della colazione</textarea>
+                    <div class="text-xs text-gray-500 mt-1 text-right">
+                        60/500 caratteri
+                    </div>
+                </div>
+
+                <button class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2 text-base font-semibold shadow-lg">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Aggiungi Misurazione
+                </button>
+            </div>
+        </div>
+
+        <!-- Visualizzazione Status con Note -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">
+                Stato Parametri
+            </h3>
+
+            <!-- Riepilogo -->
+            <div class="grid grid-cols-3 gap-2 mb-6">
+                <div class="p-3 bg-green-50 rounded-lg border-2 border-green-200 text-center">
+                    <div class="text-2xl font-bold text-green-700">2</div>
+                    <div class="text-xs text-green-600 font-medium">Ottimali</div>
+                </div>
+                <div class="p-3 bg-yellow-50 rounded-lg border-2 border-yellow-200 text-center">
+                    <div class="text-2xl font-bold text-yellow-700">1</div>
+                    <div class="text-xs text-yellow-600 font-medium">Attenzione</div>
+                </div>
+                <div class="p-3 bg-red-50 rounded-lg border-2 border-red-200 text-center">
+                    <div class="text-2xl font-bold text-red-700">0</div>
+                    <div class="text-xs text-red-600 font-medium">Critici</div>
+                </div>
+            </div>
+
+            <!-- Parametro con Note -->
+            <div class="space-y-3">
+                <div class="p-4 rounded-lg border-2 bg-green-50 border-green-200" style="border-left: 4px solid #3b82f6;">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="text-green-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                </svg>
+                                <h4 class="font-bold text-gray-900 text-base">Glicemia</h4>
+                                <span class="text-xs font-semibold px-2 py-0.5 rounded text-green-800">Ottimale</span>
+                            </div>
+
+                            <div class="flex items-baseline gap-2 mb-2">
+                                <span class="text-2xl font-bold text-green-800">85.00</span>
+                                <span class="text-sm text-gray-600">mg/dL</span>
+                            </div>
+
+                            <div class="text-xs text-gray-500 mb-3">
+                                📅 20 gennaio 2025
+                            </div>
+
+                            <!-- NOTE VISUALIZZATE -->
+                            <div class="mb-3 p-2 bg-gray-50 rounded border border-gray-200">
+                                <p class="text-xs text-gray-600">
+                                    <span class="font-semibold">📝 Note:</span> Misurazione effettuata a digiuno, prima della colazione
+                                </p>
+                            </div>
+
+                            <div class="space-y-1 text-xs">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                    <span class="text-gray-700"><span class="font-semibold">Range Standard:</span> 70 - 100</span>
+                                    <svg class="text-green-600" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    <span class="text-gray-700"><span class="font-semibold">Range Personale:</span> 78.5 - 91.5</span>
+                                    <svg class="text-green-600" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col items-center gap-1">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-green-500">
+                                <span class="text-white text-xl font-bold">✓</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parametro SENZA note -->
+                <div class="p-4 rounded-lg border-2 bg-yellow-50 border-yellow-200" style="border-left: 4px solid #f59e0b;">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <svg class="text-yellow-600" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                <h4 class="font-bold text-gray-900 text-base">VES</h4>
+                                <span class="text-xs font-semibold px-2 py-0.5 rounded text-yellow-800">Attenzione</span>
+                            </div>
+
+                            <div class="flex items-baseline gap-2 mb-2">
+                                <span class="text-2xl font-bold text-yellow-800">18.00</span>
+                                <span class="text-sm text-gray-600">mm/h</span>
+                            </div>
+
+                            <div class="text-xs text-gray-500 mb-3">
+                                📅 19 gennaio 2025
+                            </div>
+
+                            <!-- Nessuna nota - il box non appare -->
+
+                            <div class="space-y-1 text-xs">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                                    <span class="text-gray-700"><span class="font-semibold">Range Standard:</span> 0 - 20</span>
+                                    <svg class="text-green-600" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    <span class="text-gray-700"><span class="font-semibold">Range Personale:</span> 8.0 - 16.0</span>
+                                    <svg class="text-red-600" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col items-center gap-1">
+                            <div class="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-500">
+                                <span class="text-white text-xl font-bold">!</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info box -->
+            <div class="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p class="text-xs text-blue-800">
+                    <span class="font-semibold">💡 Suggerimento:</span> Usa il campo "Note" per annotare informazioni importanti come condizioni di misurazione, sintomi, o altre osservazioni utili.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip esempio sul grafico -->
+    <div class="max-w-4xl mx-auto mt-6">
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">
+                Tooltip Grafico con Note
+            </h3>
+            <div class="flex justify-center">
+                <div class="bg-white p-4 rounded-lg shadow-xl border-2 border-gray-200">
+                    <p class="font-bold text-gray-900 mb-1">2025-01-20</p>
+                    <p class="text-2xl font-bold text-blue-600">
+                        85 mg/dL
+                    </p>
+                    <div class="mt-2 pt-2 border-t border-gray-200">
+                        <p class="text-xs text-gray-600">
+                            <span class="font-semibold">📝 Note:</span><br/>
+                            Misurazione effettuata a digiuno, prima della colazione
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center text-sm text-gray-500 mt-4">
+                Le note appaiono anche passando il mouse sui punti del grafico
+            </p>
+        </div>
+    </div>
+</body>
+</html>
