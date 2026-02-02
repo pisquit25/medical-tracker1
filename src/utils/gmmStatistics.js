@@ -33,17 +33,43 @@ function kMeans(values, k, maxIter = 50) {
 
   while (changed && iter < maxIter) {
     clusters = Array(k).fill(null).map(() => []);
-    values.forEach(val => {
-      const distances = centroids.map(c => Math.abs(val - c));
-      const nearest = distances.indexOf(Math.min(...distances));
+    
+    // Refactored: assign values to nearest centroid
+    for (let j = 0; j < values.length; j++) {
+      const val = values[j];
+      let minDist = Infinity;
+      let nearest = 0;
+      
+      for (let i = 0; i < centroids.length; i++) {
+        const dist = Math.abs(val - centroids[i]);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = i;
+        }
+      }
+      
       clusters[nearest].push(val);
-    });
+    }
 
-    const newCentroids = clusters.map((c, i) => 
-      c.length > 0 ? mean(c) : centroids[i]
-    );
+    // Update centroids
+    const newCentroids = [];
+    for (let i = 0; i < k; i++) {
+      if (clusters[i].length > 0) {
+        newCentroids.push(mean(clusters[i]));
+      } else {
+        newCentroids.push(centroids[i]);
+      }
+    }
 
-    changed = !centroids.every((c, i) => Math.abs(c - newCentroids[i]) < 0.001);
+    // Check convergence
+    changed = false;
+    for (let i = 0; i < centroids.length; i++) {
+      if (Math.abs(centroids[i] - newCentroids[i]) >= 0.001) {
+        changed = true;
+        break;
+      }
+    }
+    
     centroids.splice(0, k, ...newCentroids);
     iter++;
   }
@@ -61,20 +87,36 @@ function fitEMGMM(values, k, maxIter = 100) {
   variances = variances.map(v => Math.max(v, 0.01));
 
   for (let iter = 0; iter < maxIter; iter++) {
-    const responsibilities = values.map(val => {
-      const probs = means.map((mu, i) => 
-        proportions[i] * gaussianPDF(val, mu, variances[i])
-      );
+    // E-step: Calculate responsibilities (refactored to avoid function in loop)
+    const responsibilities = [];
+    for (let j = 0; j < values.length; j++) {
+      const val = values[j];
+      const probs = [];
+      
+      for (let i = 0; i < k; i++) {
+        probs.push(proportions[i] * gaussianPDF(val, means[i], variances[i]));
+      }
+      
       const sum = probs.reduce((a, b) => a + b, 0);
-      return sum > 0 ? probs.map(p => p / sum) : probs.map(() => 1/k);
-    });
+      
+      if (sum > 0) {
+        responsibilities.push(probs.map(p => p / sum));
+      } else {
+        responsibilities.push(probs.map(() => 1/k));
+      }
+    }
 
     const newMeans = [];
     const newVariances = [];
     const newProportions = [];
 
     for (let i = 0; i < k; i++) {
-      const weights = responsibilities.map(r => r[i]);
+      // Calculate weights for this component (refactored)
+      const weights = [];
+      for (let j = 0; j < responsibilities.length; j++) {
+        weights.push(responsibilities[j][i]);
+      }
+      
       const weightSum = weights.reduce((a, b) => a + b, 0);
 
       if (weightSum < 0.001) {
@@ -84,11 +126,19 @@ function fitEMGMM(values, k, maxIter = 100) {
         continue;
       }
 
-      const mu = values.reduce((sum, val, j) => 
-        sum + weights[j] * val, 0) / weightSum;
+      // Weighted mean (refactored)
+      let mu = 0;
+      for (let j = 0; j < values.length; j++) {
+        mu += weights[j] * values[j];
+      }
+      mu /= weightSum;
       
-      const v = values.reduce((sum, val, j) => 
-        sum + weights[j] * Math.pow(val - mu, 2), 0) / weightSum;
+      // Weighted variance (refactored)
+      let v = 0;
+      for (let j = 0; j < values.length; j++) {
+        v += weights[j] * Math.pow(values[j] - mu, 2);
+      }
+      v /= weightSum;
 
       newMeans.push(mu);
       newVariances.push(Math.max(v, 0.01));
