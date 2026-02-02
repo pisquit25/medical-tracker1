@@ -157,28 +157,32 @@ export const MedicalProvider = ({ children }) => {
   const calculateCustomRange = (parameterName, patientId = null) => {
     const paramMeasurements = measurements.filter(
       m => m.parameter === parameterName && 
-           m.includedInFormula &&
            (!patientId || m.patientId === patientId)
     );
 
-    if (paramMeasurements.length < 2) return null;
+    if (paramMeasurements.length < 5) return null;
 
-    const values = paramMeasurements.map(m => m.value);
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-    const sd = Math.sqrt(variance);
+    // USA SETPOINT (Robust o GMM) invece di media semplice
+    const setpointResult = calculateSetpointHybrid(paramMeasurements);
+    
+    if (!setpointResult || setpointResult.error) return null;
+
+    const { setpoint, std } = setpointResult;
 
     const parameter = parameters.find(p => p.name === parameterName);
     
+    // Determina multiplier dalla formula (default 1.5)
     let multiplier = 1.5;
     if (parameter?.customFormula.includes('2*sd')) multiplier = 2;
     if (parameter?.customFormula.includes('1*sd') && !parameter?.customFormula.includes('1.5*sd')) multiplier = 1;
 
     return {
-      min: mean - (multiplier * sd),
-      max: mean + (multiplier * sd),
-      mean,
-      sd
+      min: setpoint - (multiplier * std),
+      max: setpoint + (multiplier * std),
+      mean: setpoint,  // Ora è il setpoint, non la media semplice
+      sd: std,
+      method: setpointResult.methodUsed,  // 'robust' o 'gmm'
+      confidence: setpointResult.confidence
     };
   };
 

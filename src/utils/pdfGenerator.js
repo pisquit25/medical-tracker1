@@ -1,6 +1,27 @@
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { calculateAge } from './patientUtils';
+import { calculateSetpoint } from './setpointCalculator';
+
+// Funzione helper per determinare colore semaforo
+const getTrafficLightColor = (value, standardRange, customRange) => {
+  const inStandardRange = standardRange && 
+    value >= standardRange.min && value <= standardRange.max;
+  
+  const inCustomRange = customRange && 
+    value >= customRange.min && value <= customRange.max;
+  
+  // Verde: dentro entrambi i range
+  if (inStandardRange && inCustomRange) {
+    return [34, 197, 94]; // green-500
+  }
+  // Giallo: dentro un solo range
+  if (inStandardRange || inCustomRange) {
+    return [234, 179, 8]; // yellow-500
+  }
+  // Rosso: fuori da entrambi
+  return [239, 68, 68]; // red-500
+};
 
 export const generatePatientPDF = (patient, measurements, parameters, visits = []) => {
   const doc = new jsPDF();
@@ -128,21 +149,27 @@ export const generatePatientPDF = (patient, measurements, parameters, visits = [
       doc.text(paramName, 14, yPos);
       yPos += 5;
 
-      // Calcola range personalizzato per questo parametro
-      const includedMeasurements = paramMeasurements.filter(m => m.includedInFormula);
+      // Calcola SETPOINT (Robust o GMM) invece di media semplice
       let customRange = null;
+      let setpointInfo = null;
       
-      if (includedMeasurements.length >= 2) {
-        const values = includedMeasurements.map(m => m.value);
-        const mean = values.reduce((a, b) => a + b, 0) / values.length;
-        const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-        const sd = Math.sqrt(variance);
+      const setpointResult = calculateSetpoint(paramMeasurements);
+      
+      if (setpointResult && !setpointResult.error) {
+        const { setpoint, std, methodUsed } = setpointResult;
         
-        // Usa la formula del parametro (default: mean ± 1.5*sd)
+        // Determina multiplier dalla formula
         const multiplier = param?.customFormula?.includes('2*sd') ? 2 : 1.5;
+        
         customRange = {
-          min: mean - multiplier * sd,
-          max: mean + multiplier * sd
+          min: setpoint - multiplier * std,
+          max: setpoint + multiplier * std
+        };
+        
+        setpointInfo = {
+          value: setpoint,
+          method: methodUsed === 'gmm' ? 'GMM' : 'Robust IQR',
+          std: std
         };
       }
 
@@ -191,12 +218,90 @@ export const generatePatientPDF = (patient, measurements, parameters, visits = [
           4: { cellWidth: 50 },  // Note
           5: { cellWidth: 20 }   // In Formula
         },
+        // NUOVO: Colori semaforo per i valori
+        didParseCell: function(data) {
+          // Colora la colonna "Valore" (index 1)
+          if (data.section === 'body' && data.column.index === 1) {
+            const rowIndex = data.row.index;
+            const measurement = paramMeasurements
+              .sort((a, b) => new Date(b.date) - new Date(a.date))
+              .slice(0, 20)[rowIndex];
+            
+            if (measurement) {
+              const color = getTrafficLightColor(
+                measurement.value,
+                param?.standardRange,
+                customRange
+              );
+              
+              data.cell.styles.fillColor = color;
+              data.cell.styles.textColor = [255, 255, 255]; // Testo bianco
+              data.cell.styles.fontStyle = 'bold';
+            }
+          }
+        },
         didDrawPage: function (data) {
           yPos = data.cursor.y + 10;
         }
       });
 
-      yPos = doc.lastAutoTable.finalY + 15;
+      yPos = doc.lastAutoTable.finalY + 5;
+      
+      // NUOVO: Legenda Semaforo e Info Setpoint
+      if (setpointInfo || param?.standardRange || customRange) {
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.text('Legenda:', 14, yPos);
+        yPos += 5;
+        
+        doc.setFont(undefined, 'normal');
+        doc.setFontSize(8);
+        
+        // Legenda colori
+        const legendY = yPos;
+        
+        // Verde
+        doc.setFillColor(34, 197, 94);
+        doc.rect(14, legendY, 3, 3, 'F');
+        doc.text('Ottimale (in entrambi i range)', 20, legendY + 2.5);
+        
+        // Giallo
+        doc.setFillColor(234, 179, 8);
+        doc.rect(80, legendY, 3, 3, 'F');
+        doc.text('Attenzione (in un solo range)', 86, legendY + 2.5);
+        
+        // Rosso
+        doc.setFillColor(239, 68, 68);
+        doc.rect(145, legendY, 3, 3, 'F');
+        doc.text('Critico (fuori range)', 151, legendY + 2.5);
+        
+        yPos += 8;
+        
+        // Info Range Personalizzato (Setpoint)
+        if (customRange && setpointInfo) {
+          doc.setFont(undefined, 'bold');
+          doc.text(`Range Personalizzato (${setpointInfo.method}):`, 14, yPos);
+          doc.setFont(undefined, 'normal');
+          doc.text(
+            `${customRange.min.toFixed(2)} - ${customRange.max.toFixed(2)} ${param?.unit || ''} (Setpoint: ${setpointInfo.value.toFixed(2)} ± ${setpointInfo.std.toFixed(2)})`,
+            14, yPos + 4
+          );
+          yPos += 8;
+        }
+        
+        if (param?.standardRange) {
+          doc.setFont(undefined, 'bold');
+          doc.text('Range Standard:', 14, yPos);
+          doc.setFont(undefined, 'normal');
+          doc.text(
+            `${param.standardRange.min} - ${param.standardRange.max} ${param.unit}`,
+            14, yPos + 4
+          );
+          yPos += 8;
+        }
+      }
+      
+      yPos += 7;
       
       if (yPos > 250) {
         doc.addPage();
