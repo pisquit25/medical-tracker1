@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { calculateSetpoint as calculateSetpointHybrid } from '../utils/setpointCalculator';
 
 const MedicalContext = createContext();
 
@@ -181,6 +182,18 @@ export const MedicalProvider = ({ children }) => {
     };
   };
 
+  // NUOVO: Calcola setpoint con metodo ibrido (Robust < 20, GMM >= 20)
+  const calculateSetpoint = (parameterName, patientId = null) => {
+    const paramMeasurements = measurements.filter(
+      m => m.parameter === parameterName &&
+           (!patientId || m.patientId === patientId)
+    );
+
+    if (paramMeasurements.length === 0) return null;
+
+    return calculateSetpointHybrid(paramMeasurements);
+  };
+
   const exportData = () => {
     const dataToExport = {
       parameters,
@@ -236,6 +249,7 @@ export const MedicalProvider = ({ children }) => {
     removeMeasurement,
     toggleIncludeInFormula,
     calculateCustomRange,
+    calculateSetpoint,
     exportData,
     importData
   };

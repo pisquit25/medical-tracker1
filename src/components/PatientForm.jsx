@@ -125,25 +125,28 @@ const PatientForm = ({ patient = null, onClose, onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full my-8">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <User size={28} className="text-primary-600" />
-            {isEdit ? 'Modifica Paziente' : 'Nuovo Paziente'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <X size={24} />
-          </button>
-        </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
+      <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 py-8">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl my-4 sm:my-8">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-white rounded-t-xl">
+            <h2 className="text-lg sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <User size={20} className="text-primary-600 sm:w-7 sm:h-7" />
+              <span className="hidden sm:inline">{isEdit ? 'Modifica Paziente' : 'Nuovo Paziente'}</span>
+              <span className="sm:hidden">{isEdit ? 'Modifica' : 'Nuovo'}</span>
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+              type="button"
+            >
+              <X size={20} className="sm:w-6 sm:h-6" />
+            </button>
+          </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {/* Avatar */}
             <div className="md:col-span-2 flex justify-center">
               <div className="relative">
@@ -377,24 +380,26 @@ const PatientForm = ({ patient = null, onClose, onSuccess }) => {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
             <button
               type="submit"
-              className="btn btn-primary flex-1 py-3 flex items-center justify-center gap-2"
+              className="btn btn-primary flex-1 py-3 flex items-center justify-center gap-2 text-base"
             >
               <Save size={20} />
-              {isEdit ? 'Salva Modifiche' : 'Crea Paziente'}
+              <span className="hidden sm:inline">{isEdit ? 'Salva Modifiche' : 'Crea Paziente'}</span>
+              <span className="sm:hidden">{isEdit ? 'Salva' : 'Crea'}</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-secondary px-6 py-3"
+              className="btn btn-secondary py-3 sm:px-6 text-base"
             >
               Annulla
             </button>
           </div>
         </form>
       </div>
+    </div>
     </div>
   );
 };

@@ -1,13 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMedical } from '../context/MedicalContext';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { usePatients } from '../context/PatientContext';
+import { TrendingUp, TrendingDown, Minus, Calendar, Target, Activity } from 'lucide-react';
+import ParameterCalendarView from '../components/ParameterCalendarView';
+import { formatSetpointResult } from '../utils/setpointCalculator';
 
 const Analytics = () => {
-  const { measurements, parameters } = useMedical();
+  const { measurements, parameters, calculateSetpoint } = useMedical();
+  const { getActivePatient } = usePatients();
+  const activePatient = getActivePatient();
+  const [selectedParameter, setSelectedParameter] = useState(null);
 
   const getParameterStats = (paramName) => {
     const paramMeasurements = measurements
-      .filter(m => m.parameter === paramName && m.includedInFormula)
+      .filter(m => 
+        m.parameter === paramName && 
+        m.includedInFormula &&
+        m.patientId === activePatient?.id
+      )
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     if (paramMeasurements.length === 0) return null;
@@ -48,7 +58,7 @@ const Analytics = () => {
           Analisi
         </h1>
         <p className="text-gray-600">
-          Statistiche dettagliate sui tuoi parametri medici
+          Statistiche dettagliate e visualizzazione calendario • Click su un parametro per aprire il calendario
         </p>
       </div>
 
@@ -56,10 +66,17 @@ const Analytics = () => {
         {parameters.map((param, index) => {
           const stats = getParameterStats(param.name);
           
+          // NUOVO: Calcola setpoint
+          const setpointRaw = calculateSetpoint(param.name, activePatient?.id);
+          const setpointData = setpointRaw && !setpointRaw.error 
+            ? formatSetpointResult(setpointRaw, param.unit) 
+            : null;
+          
           return (
             <div
               key={param.name}
-              className="card animate-slide-in"
+              onClick={() => setSelectedParameter(param)}
+              className="card animate-slide-in cursor-pointer hover:shadow-xl hover:scale-105 transition-all duration-200 border-2 hover:border-primary-300"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               <div className="flex items-start justify-between mb-4">
@@ -70,21 +87,92 @@ const Analytics = () => {
                   />
                   <h3 className="font-bold text-gray-900">{param.name}</h3>
                 </div>
-                {stats && (
-                  <div className={`p-2 rounded-lg ${
-                    stats.trend === 'up' ? 'bg-red-100 text-red-600' :
-                    stats.trend === 'down' ? 'bg-green-100 text-green-600' :
-                    'bg-gray-100 text-gray-600'
-                  }`}>
-                    {stats.trend === 'up' && <TrendingUp size={18} />}
-                    {stats.trend === 'down' && <TrendingDown size={18} />}
+                <div className="flex gap-2">
+                  {stats && (
+                    <div className={`p-2 rounded-lg ${
+                      stats.trend === 'up' ? 'bg-red-100 text-red-600' :
+                      stats.trend === 'down' ? 'bg-green-100 text-green-600' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {stats.trend === 'up' && <TrendingUp size={18} />}
+                      {stats.trend === 'down' && <TrendingDown size={18} />}
                     {stats.trend === 'stable' && <Minus size={18} />}
                   </div>
                 )}
+                  <div className="p-2 bg-primary-100 text-primary-600 rounded-lg">
+                    <Calendar size={18} />
+                  </div>
+                </div>
               </div>
 
               {stats ? (
                 <div className="space-y-3">
+                  {/* Setpoint Section - NUOVO */}
+                  {setpointData && (
+                    <div className="bg-gradient-to-r from-primary-50 to-blue-50 p-3 rounded-lg border border-primary-100">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Target size={16} className="text-primary-600" />
+                        <span className="text-xs font-semibold text-primary-700">Setpoint Biologico</span>
+                      </div>
+                      
+                      <div className="flex items-baseline justify-between mb-1">
+                        <span className="text-2xl font-bold text-primary-700">
+                          {setpointData.setpointValue}
+                        </span>
+                        <span className="text-xs text-gray-600">{param.unit}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600">
+                          CV: {setpointData.cvValue}% • {setpointData.cvInterpretation}
+                        </span>
+                      </div>
+
+                      {/* Info GMM - NUOVO */}
+                      {setpointData.methodUsed === 'gmm' && setpointData.clusters && (
+                        <div className="mt-2 pt-2 border-t border-primary-200">
+                          <div className="flex items-center gap-2 text-xs text-gray-700">
+                            <Activity size={14} className="text-primary-600" />
+                            <span className="font-semibold">
+                              {setpointData.nComponents} Cluster{setpointData.nComponents > 1 ? 's' : ''} GMM
+                            </span>
+                          </div>
+                          {setpointData.nComponents > 1 && (
+                            <div className="mt-1 space-y-1">
+                              {setpointData.clusters.means.map((mean, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs">
+                                  <span className="text-gray-600">
+                                    Cluster {idx + 1}: {mean} {param.unit}
+                                  </span>
+                                  <span className="text-gray-500">
+                                    {setpointData.clusters.proportions[idx]}%
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Metodo e Confidenza */}
+                      <div className="mt-2 flex items-center justify-between text-xs">
+                        <span className="text-gray-500">
+                          {setpointData.method}
+                        </span>
+                        <span className={`font-medium ${setpointData.confidence.color}`}>
+                          {setpointData.confidence.icon} {setpointData.confidence.text}
+                        </span>
+                      </div>
+
+                      {/* Warning se poche misurazioni */}
+                      {setpointData.nMeasurements < 20 && (
+                        <div className="mt-2 text-xs text-yellow-700 bg-yellow-50 p-2 rounded">
+                          ℹ️ {20 - setpointData.nMeasurements} misurazioni per GMM
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-baseline">
                     <span className="text-sm text-gray-600">Ultima misurazione</span>
                     <span className="text-2xl font-bold" style={{ color: param.color }}>
@@ -135,11 +223,19 @@ const Analytics = () => {
                       </div>
                     </div>
                   )}
+                  
+                  <div className="pt-3 border-t border-gray-200">
+                    <div className="flex items-center justify-center gap-2 text-primary-600 font-medium text-sm">
+                      <Calendar size={16} />
+                      <span>Click per visualizzare calendario</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-8">
                   <div className="text-4xl mb-2">📊</div>
                   <p className="text-sm text-gray-500">Nessun dato disponibile</p>
+                  <p className="text-xs text-gray-400 mt-2">Inserisci misurazioni per visualizzare il calendario</p>
                 </div>
               )}
             </div>
@@ -155,6 +251,14 @@ const Analytics = () => {
             Aggiungi le tue prime misurazioni per visualizzare statistiche dettagliate
           </p>
         </div>
+      )}
+
+      {/* Calendar Modal */}
+      {selectedParameter && (
+        <ParameterCalendarView
+          parameter={selectedParameter}
+          onClose={() => setSelectedParameter(null)}
+        />
       )}
     </div>
   );
